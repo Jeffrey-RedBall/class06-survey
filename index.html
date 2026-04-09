@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>學生AI課程問卷調查</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Helvetica Neue',Arial,sans-serif;background:#f5f5f3;min-height:100vh;padding:2rem 1rem;}
+  .wrap{max-width:640px;margin:0 auto;}
+  .page-title{font-size:22px;font-weight:600;color:#1a1a1a;margin-bottom:4px;}
+  .page-sub{font-size:14px;color:#888;margin-bottom:1.5rem;}
+  .card{background:#fff;border:1px solid #e8e8e4;border-radius:14px;padding:1.25rem;margin-bottom:1rem;}
+  .card label{font-size:13px;color:#888;display:block;margin-bottom:6px;}
+  .card input[type=text]{width:100%;padding:9px 12px;font-size:15px;border:1px solid #ddd;border-radius:8px;background:#fff;color:#1a1a1a;outline:none;transition:border 0.15s;}
+  .card input[type=text]:focus{border-color:#534AB7;}
+  .section-title{font-size:15px;font-weight:600;color:#1a1a1a;margin-bottom:4px;}
+  .section-sub{font-size:12px;color:#aaa;margin-bottom:14px;}
+  .option-row{display:flex;align-items:flex-start;gap:10px;padding:11px 13px;border:1px solid #e8e8e4;border-radius:10px;margin-bottom:8px;cursor:pointer;transition:all 0.15s;user-select:none;}
+  .option-row:hover{background:#f9f9f7;}
+  .option-row.checked{border-color:#534AB7;background:#EEEDFE;}
+  .checkbox{width:20px;height:20px;border-radius:5px;border:1.5px solid #ccc;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;font-size:12px;font-weight:700;transition:all 0.15s;}
+  .option-row.checked .checkbox{background:#534AB7;border-color:#534AB7;color:#fff;}
+  .opt-label{font-size:13px;font-weight:700;color:#534AB7;margin-right:6px;flex-shrink:0;}
+  .option-row:not(.checked) .opt-label{color:#bbb;}
+  .opt-text{font-size:14px;color:#1a1a1a;line-height:1.5;}
+  .option-row.checked .opt-text{color:#26215C;}
+  .btn{display:inline-flex;align-items:center;gap:6px;padding:10px 22px;border-radius:9px;border:1px solid #ddd;background:#fff;color:#1a1a1a;font-size:14px;cursor:pointer;transition:all 0.15s;font-weight:500;}
+  .btn:hover{background:#f5f5f3;}
+  .btn-primary{background:#534AB7;color:#fff;border-color:#534AB7;}
+  .btn-primary:hover{background:#3C3489;}
+  .btn-danger{color:#A32D2D;border-color:#f5c1c1;}
+  .btn-danger:hover{background:#FCEBEB;}
+  .err{font-size:13px;color:#A32D2D;margin-bottom:10px;padding:9px 13px;background:#FCEBEB;border-radius:9px;}
+  .nav{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:1rem;}
+  .done-wrap{text-align:center;padding:2rem 1rem;}
+  .done-icon{width:64px;height:64px;border-radius:50%;background:#EEEDFE;display:flex;align-items:center;justify-content:center;margin:0 auto 1rem;font-size:28px;}
+  .done-title{font-size:18px;font-weight:600;color:#1a1a1a;margin-bottom:6px;}
+  .done-sub{font-size:13px;color:#888;margin-bottom:1.5rem;}
+  .chosen-list{text-align:left;background:#f9f9f7;border-radius:10px;padding:14px 16px;margin-bottom:1.5rem;}
+  .chosen-item{font-size:13px;color:#1a1a1a;padding:5px 0;display:flex;gap:8px;}
+  .chosen-dot{color:#534AB7;font-weight:700;flex-shrink:0;}
+  .resp-row{background:#f9f9f7;border-radius:10px;padding:11px 14px;margin-bottom:7px;}
+  .resp-name{font-weight:600;font-size:14px;color:#1a1a1a;}
+  .resp-id{color:#aaa;font-size:12px;margin-left:6px;}
+  .resp-time{font-size:11px;color:#bbb;margin-top:2px;}
+  .resp-tags{margin-top:6px;display:flex;flex-wrap:wrap;gap:4px;}
+  .tag{background:#EEEDFE;color:#3C3489;font-size:11px;padding:3px 9px;border-radius:20px;font-weight:500;}
+  .count-badge{display:inline-flex;align-items:center;justify-content:center;background:#534AB7;color:#fff;font-size:11px;font-weight:700;border-radius:20px;padding:1px 7px;margin-left:6px;}
+  .list-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;}
+  .list-header h2{font-size:17px;font-weight:600;color:#1a1a1a;}
+  .empty{font-size:13px;color:#bbb;padding:20px;text-align:center;}
+  @media(max-width:480px){body{padding:1rem 0.75rem;}.page-title{font-size:19px;}}
+</style>
+</head>
+<body>
+<div class="wrap" id="app"></div>
+<script>
+const OPTIONS = [
+  {key:'A', text:'影片生成（短片、商業影片製作）'},
+  {key:'B', text:'內容（社群圖片／文章內容製作）'},
+  {key:'C', text:'經營自己，成為網紅／IP'},
+  {key:'D', text:'AI工作效率提升'},
+  {key:'E', text:'Vibe Coding，學Claude Code開發程式'},
+  {key:'F', text:'想學設計Agent，工作自動化（養龍蝦）🦞'},
+];
+
+let responses = [];
+try{ responses = JSON.parse(localStorage.getItem('ai_survey_resp') || '[]'); }catch(e){}
+
+let state = {screen:'form', studentId:'', studentName:'', checked:[], error:''};
+
+function save(){ try{ localStorage.setItem('ai_survey_resp', JSON.stringify(responses)); }catch(e){} }
+
+function render(){
+  document.getElementById('app').innerHTML =
+    state.screen==='form' ? renderForm() :
+    state.screen==='done' ? renderDone() : renderList();
+  bind();
+}
+
+function renderForm(){
+  const opts = OPTIONS.map(o=>{
+    const on = state.checked.includes(o.key);
+    return `<div class="option-row${on?' checked':''}" data-key="${o.key}">
+      <div class="checkbox">${on?'✓':''}</div>
+      <div><span class="opt-label">${o.key}</span><span class="opt-text">${o.text}</span></div>
+    </div>`;
+  }).join('');
+  const sub = state.checked.length ? `已選 <strong>${state.checked.length}</strong> 項` : '請至少選 1 項';
+  return `
+    <p class="page-title">學生AI課程問卷調查</p>
+    <p class="page-sub">填寫完畢後老師可匯出 Excel 統計</p>
+    <div class="card"><label>學號</label><input type="text" id="sid" placeholder="例：B12345678" value="${esc(state.studentId)}"></div>
+    <div class="card"><label>姓名</label><input type="text" id="nm" placeholder="請輸入您的姓名" value="${esc(state.studentName)}"></div>
+    <div class="card">
+      <div class="section-title">你選修 AI 課程的目的是？</div>
+      <div class="section-sub">可複選 · ${sub}</div>
+      ${opts}
+    </div>
+    ${state.error?`<div class="err">${state.error}</div>`:''}
+    <div class="nav">
+      <button class="btn btn-primary" id="submitBtn">提交問卷</button>
+      ${responses.length?`<button class="btn" id="listBtn">老師查看回應<span class="count-badge">${responses.length}</span></button>`:''}
+    </div>`;
+}
+
+function renderDone(){
+  const last = responses[responses.length-1];
+  const chosen = last.choices.map(k=>{
+    const o = OPTIONS.find(x=>x.key===k);
+    return `<div class="chosen-item"><span class="chosen-dot">✓</span>${o.key}. ${o.text}</div>`;
+  }).join('');
+  return `
+    <div class="done-wrap">
+      <div class="done-icon">🎉</div>
+      <div class="done-title">問卷提交成功！</div>
+      <div class="done-sub">${esc(last.name)}（${esc(last.studentId)}），感謝你的填寫</div>
+      <div class="chosen-list">${chosen}</div>
+      <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;">
+        <button class="btn" id="newBtn">再填一份</button>
+        <button class="btn" id="listBtn2">老師查看回應</button>
+        <button class="btn btn-primary" id="dlBtn">匯出 Excel</button>
+      </div>
+    </div>`;
+}
+
+function renderList(){
+  const rows = responses.length
+    ? responses.map((r,i)=>{
+        const tags = r.choices.map(k=>`<span class="tag">${k}. ${OPTIONS.find(x=>x.key===k).text.slice(0,14)}…</span>`).join('');
+        return `<div class="resp-row">
+          <div><span class="resp-name">${esc(r.name)}</span><span class="resp-id">${esc(r.studentId)}</span></div>
+          <div class="resp-time">${r.time}</div>
+          <div class="resp-tags">${tags}</div>
+        </div>`;
+      }).join('')
+    : '<div class="empty">尚無回應</div>';
+  return `
+    <div class="list-header">
+      <h2>所有問卷回應</h2>
+      <span style="font-size:13px;color:#aaa;">共 ${responses.length} 筆</span>
+    </div>
+    ${rows}
+    <div class="nav" style="margin-top:1.25rem;">
+      <button class="btn" id="backBtn">← 返回填寫</button>
+      ${responses.length?`<button class="btn btn-primary" id="dlBtn">匯出 Excel</button>`:''}
+      ${responses.length?`<button class="btn btn-danger" id="clearBtn">清除全部</button>`:''}
+    </div>`;
+}
+
+function buildCSV(){
+  const h = ['學號','姓名','提交時間','A-影片生成','B-社群內容','C-網紅IP','D-AI效率','E-Vibe Coding','F-Agent工作自動化','選擇代碼'];
+  const rows = responses.map(r=>[
+    r.studentId, r.name, r.time,
+    ...OPTIONS.map(o=>r.choices.includes(o.key)?'1':'0'),
+    r.choices.join('+')
+  ]);
+  return '\uFEFF'+[h,...rows].map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
+}
+
+function dlCSV(){
+  const b = new Blob([buildCSV()],{type:'text/csv;charset=utf-8'});
+  const u = URL.createObjectURL(b);
+  const a = document.createElement('a');
+  a.href=u; a.download='AI課程問卷調查.csv'; a.click();
+  URL.revokeObjectURL(u);
+}
+
+function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+function bind(){
+  const sid=document.getElementById('sid');
+  const nm=document.getElementById('nm');
+  if(sid) sid.addEventListener('input',e=>state.studentId=e.target.value);
+  if(nm) nm.addEventListener('input',e=>state.studentName=e.target.value);
+
+  document.querySelectorAll('[data-key]').forEach(el=>{
+    el.addEventListener('click',()=>{
+      const k=el.dataset.key;
+      state.checked = state.checked.includes(k) ? state.checked.filter(x=>x!==k) : [...state.checked,k];
+      state.error=''; render();
+    });
+  });
+
+  const $=id=>document.getElementById(id);
+  const on=(id,fn)=>{ const el=$(id); if(el) el.addEventListener('click',fn); };
+
+  on('submitBtn',()=>{
+    state.studentId=state.studentId.trim();
+    state.studentName=state.studentName.trim();
+    if(!state.studentId){ state.error='請填寫學號'; render(); return; }
+    if(!state.studentName){ state.error='請填寫姓名'; render(); return; }
+    if(!state.checked.length){ state.error='請至少選擇一個選項'; render(); return; }
+    responses.push({studentId:state.studentId, name:state.studentName, choices:[...state.checked], time:new Date().toLocaleString('zh-TW')});
+    save();
+    state={screen:'done',studentId:'',studentName:'',checked:[],error:''};
+    render();
+  });
+  on('listBtn',()=>{ state.screen='list'; render(); });
+  on('listBtn2',()=>{ state.screen='list'; render(); });
+  on('newBtn',()=>{ state.screen='form'; render(); });
+  on('backBtn',()=>{ state.screen='form'; render(); });
+  on('clearBtn',()=>{ if(confirm('確定要清除所有回應嗎？此動作無法復原。')){ responses=[]; save(); render(); } });
+  document.querySelectorAll('#dlBtn').forEach(b=>b.addEventListener('click',dlCSV));
+}
+
+render();
+</script>
+</body>
+</html>
